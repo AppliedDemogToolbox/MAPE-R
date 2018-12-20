@@ -17,7 +17,7 @@
 */
 
 /*  Adapted from golden section search code from Coleman, Charles D., 
-    "A Fast, High-Precision Implementation of the Univariate One-Parameter Box-Cox Transformation Using the Golden Section Search in SAS/IML®", 
+    "A Fast, High-Precision Implementation of the Univariate One-Parameter Box-Cox Transformation Using the Golden Section Search in SAS/IMLÂ®", 
     Proceedings of the 17th Northeast SAS Users Group (NESUG) Conference, 2004.  
     Available at http://www.nesug.org/proceedings/nesug04/an/an12.pdf.
 */
@@ -102,7 +102,7 @@
 
 
 /*  Read data in 
-    (example data is available at http://www.demog.berkeley.edu/~eddieh/AppliedDemographyToolbox/MAPE-R/fictdata.xls)
+    (example data is available at https://github.com/AppliedDemogToolbox/MAPE-R/raw/master/fictdata.xls)
 */
 
 proc import DBMS=XLS
@@ -117,7 +117,7 @@ run;
 
 
 /*  Print the output information
-    (example output is available at http://www.demog.berkeley.edu/~eddieh/AppliedDemographyToolbox/MAPE-R/mape-r.lst)
+    (example output is available at https://github.com/AppliedDemogToolbox/MAPE-R/raw/master/mape-r.lst)
 */
 
 proc print data=TEST;
