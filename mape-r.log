@@ -1,0 +1,201 @@
+1                                                          The SAS System                            14:18 Wednesday, March 16, 2011
+
+NOTE: Copyright (c) 2002-2008 by SAS Institute Inc., Cary, NC, USA. 
+NOTE: SAS (r) Proprietary Software 9.2 (TS1M0) 
+      Licensed to UNIVERSITY OF CALIFORNIA SYSTEM-T&R, Site 0070081487.
+NOTE: This session is executing on the Linux 2.6.18-164.10.1.el5 platform.
+
+
+
+You are running SAS 9. Some SAS 8 files will be automatically converted 
+by the V9 engine; others are incompatible.  Please see 
+http://support.sas.com/rnd/migration/planning/platform/64bit.html
+
+PROC MIGRATE will preserve current SAS file attributes and is 
+recommended for converting all your SAS libraries from any 
+SAS 8 release to SAS 9.  For details and examples, please see
+http://support.sas.com/rnd/migration/index.html
+
+
+Welcome to SAS version 9.2 please report problems to trouble@demog.berkeley.edu 
+
+
+
+NOTE: SAS initialization used:
+      real time           0.25 seconds
+      cpu time            0.06 seconds
+      
+1          /*  Title:
+2              Author(s):
+3              Date(s):
+4              Disclaimer(s):
+5          */
+6          
+7          
+8          /*  Enter the MAPER function into SAS
+9          */
+10         
+11         %macro MAPER(data=, out=, var=, min=, max=, LAMBDA=);
+12         
+13         /*  Usage:
+14               &DATA is the input dataset,
+15               &OUT is the output dataset to hold MAPE-R,
+16               &VAR is the variable for which to calculate MAPE-R,
+17               &MIN is the minimum value of LAMBDA to be used (-2 is recommended),
+18               &MAX is the maximum value of LAMBDA to be used (2 is recommended),
+19               &LAMBDA is the name of an optional dataset to hold the final value of LAMBDA.
+20         */
+21         
+22         /*  Adapted from golden section search code from Coleman, Charles D.,
+23             "A Fast, High-Precision Implementation of the Univariate One-Parameter Box-Cox Transformation Using the Golden
+23       ! Section Search in SAS/IML®",
+24             Proceedings of the 17th Northeast SAS Users Group (NESUG) Conference, 2004.
+25             Available at http://www.nesug.org/proceedings/nesug04/an/an12.pdf.
+26         */
+27         
+28           proc iml;
+29             use &data;
+30         	read all var {&var} into y;
+31         	n=nrow(y);
+32         	sumlog=sum(log(y));
+2                                                          The SAS System                            14:18 Wednesday, March 16, 2011
+
+33         	tol=1e-7;
+34             r=0.61803399;
+35             a=&min;
+36             b=&max;
+37         
+38         	start llf(lambda) global(tol, y, n, sumlog);
+39               if abs(lambda)<tol then yl=log(y);
+40         	  else yl=(y##lambda-1)/lambda;
+41         	  avgyl=yl[:,];
+42         	  f=-n*log(ssq(yl-avgyl)/n)/2+(lambda-1)*sumlog;
+43         	  return(f);
+44         	finish llf;
+45         	
+46         	fa=llf(a);
+47             fb=llf(b);
+48             c=a+r*(b-a);
+49             fc=llf(c);
+50         
+51         	do while ((fc<fa) | (fc<fb));
+52         	  if (fc<fa) then do;
+53         	    a=a-2;
+54                 fa=llf(a);
+55         	  end;
+56         	  else do;
+57         	    b=b+2;
+58                 fb=llf(b);
+59         	  end;
+60         	  c=a+r*(b-a);
+61               fc=llf(c);
+62             end;
+63         
+64         	cdflag='c';
+65         	do while (b-a>tol);
+66         	  diff=r*(b-a);
+67         	  if (cdflag='d') then do;
+68         	    c=a+diff;
+69                 fc=llf(c);
+70         	  end;
+71               if (cdflag='c') then do;
+72                 d=b-diff;
+73                 fd=llf(d);
+74               end;
+75               if (fc>fd) then do;
+76         	    a=d;
+77                 fa=fd;
+78                 d=c;
+79                 fd=fc;
+80                 cdflag='d';
+81         	  end;
+82               else do;
+83         	    b=c;
+84                 fb=fc;
+85                 c=d;
+86                 fc=fd;
+87                 cdflag='c';
+88         	  end;
+89             end;
+90         
+3                                                          The SAS System                            14:18 Wednesday, March 16, 2011
+
+91             if (fa>fb) then lambda=a;
+92             else lambda=b;
+93         
+94             MAPER = (Y ## LAMBDA)[:,] ** (1/LAMBDA);
+95         
+96             %if &LAMBDA ne %then %do;
+97           	  create &lambda from lambda[colname='lambda'];
+98           	  append from lambda;
+99             %end;
+100            create &out from maper[colname='MAPE_R'];
+101            append from maper;
+102        
+103          quit;
+104        %mend;
+105        
+106        
+107        /*  Read data in
+108            (example data is available at http://www.demog.berkeley.edu/~eddieh/MAPE-R/fictdata.xls)
+109        */
+110        
+111        proc import DBMS=XLS
+112        datafile="fictdata.xls" out=APES replace;
+113        run;
+
+NOTE: The import data set has 29 observations and 1 variables.
+NOTE: WORK.APES data set was successfully created.
+NOTE: PROCEDURE IMPORT used (Total process time):
+      real time           0.04 seconds
+      cpu time            0.02 seconds
+      
+
+114        
+115        
+116        /*  Apply the MAPER function to the data
+117        */
+118        
+119        %MAPER(DATA=APES,OUT=TEST,VAR=APE,MIN=-2,MAX=2,LAMBDA=L);
+NOTE: IML Ready
+NOTE: Module LLF defined.
+NOTE: Exiting IML.
+NOTE: The data set WORK.L has 1 observations and 1 variables.
+NOTE: The data set WORK.TEST has 1 observations and 1 variables.
+NOTE: PROCEDURE IML used (Total process time):
+      real time           0.13 seconds
+      cpu time            0.08 seconds
+      
+
+120        
+121        
+122        /*  Print the output information
+123            (example output is available at http://www.demog.berkeley.edu/~eddieh/MAPE-R/mape-r.lst)
+124        */
+125        
+126        proc print data=TEST;
+
+NOTE: There were 1 observations read from the data set WORK.TEST.
+NOTE: The PROCEDURE PRINT printed page 1.
+NOTE: PROCEDURE PRINT used (Total process time):
+4                                                          The SAS System                            14:18 Wednesday, March 16, 2011
+
+      real time           0.02 seconds
+      cpu time            0.00 seconds
+      
+
+127        proc print data=L;
+128        
+129        
+NOTE: There were 1 observations read from the data set WORK.L.
+NOTE: The PROCEDURE PRINT printed page 2.
+NOTE: PROCEDURE PRINT used (Total process time):
+      real time           0.00 seconds
+      cpu time            0.00 seconds
+      
+
+NOTE: SAS Institute Inc., SAS Campus Drive, Cary, NC USA 27513-2414
+NOTE: The SAS System used:
+      real time           0.55 seconds
+      cpu time            0.18 seconds
+      
